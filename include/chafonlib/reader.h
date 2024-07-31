@@ -11,6 +11,14 @@ typedef enum {
   READER_ERROR_SIZE
 } reader_error_kind;
 
+typedef enum {
+  READER_UNKNOWN_MODE = 0,
+  READER_COMMAND_MODE,
+  READER_RTI_MODE,
+  READER_RTIT_MODE,
+  READER_MODE_SIZE,
+} reader_mode;
+
 typedef struct {
   char* message;
   reader_error_kind kind;
@@ -32,22 +40,8 @@ typedef struct {
 } reader_response;
 
 typedef struct {
-  uint8_t ant;
-  uint8_t size;
-  uint8_t *data;
-  uint8_t rssi;
-} reader_rti_data;
-
-typedef struct {
-
-} reader_rti_heartbeat;
-
-typedef struct {
   int device;
-  reader_response response;
-
-  reader_rti_data rti_response;
-  reader_rti_heartbeat rti_heartbeat;
+  reader_mode mode;
 } reader_handle;
 
 
@@ -60,21 +54,13 @@ typedef struct {
 char const * reader_error_to_string(reader_error error);
 
 /**
- * @brief Used to retrieve detailed description of an error
- * 
- * @param error the error
- * @return char const* message
- */
-char const * reader_error_to_string(reader_error error);
-
-/**
  * @brief Initializes reader handle.
  * 
  * @param reader the reader handle
  * @param device path to the reader device, usually: /dev/ttyUSB0
- * @return reader_error, use reader_error_to_string
+ * @param error  error returned, nullable
  */
-reader_error reader_init(reader_handle *reader, char const * const device);
+void reader_init(reader_handle *reader, char const * const device, reader_error * error);
 
 /**
  * @brief Destroys the reader
@@ -85,19 +71,14 @@ void reader_destroy(reader_handle *reader);
 
 /**
  * @brief Executes a reader command
- *        and stores it's result in the reader handle.
+ *        and returns it's response.
  * 
  * @param reader reader handle
  * @param command command to execute
- * @return reader_error use reader_error_to_string
+ * @param error error returned, nullable
+ * @return reader_response
  */
-reader_error reader_execute(reader_handle * const reader, 
-                              reader_command const command);
+ reader_response reader_execute(reader_handle * const reader, 
+                              reader_command const command, reader_error * error);
 
-/**
- * @brief Should be used during RTI mode, reads current buffer.
- * @param reader reader handle
- * @return reader_error use reader_error_to_string
- */
-reader_error reader_rti_read(reader_handle * const reader);
 #endif

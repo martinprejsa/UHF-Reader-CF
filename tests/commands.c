@@ -1,16 +1,15 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include <chafonlib/reader.h>
 #include <chafonlib/commands.h>
 
 int main() {
-  reader_handle r;
+  reader_handle r = {0};
+  reader_error error = {0};
 
-  reader_error err = reader_init(&r, "/dev/ttyUSB0");
-  if (err.kind != READER_NO_ERROR) {
-    printf("Reader initialization failed %s: %s\n", reader_error_to_string(err), err.message);
-    return 1;
-  }
+  reader_init(&r, "/dev/ttyUSB0", &error);
+  assert(error.kind == READER_NO_ERROR);
 
   reader_command setreadermode = {
     .address = READER_ADR_BROADCAST,
@@ -19,13 +18,11 @@ int main() {
     .data = (uint8_t[]) {READER_ARG_ANSWER_MODE},
   };
 
-  err = reader_execute(&r, setreadermode);
-  if (err.kind != READER_NO_ERROR) {
-    printf("Reader command execution failed %s: %s\n", reader_error_to_string(err), err.message);
-    return 1;
-  }
+  reader_response response;
+  response = reader_execute(&r, setreadermode, &error);
 
-  printf("Reader set to answer mode\n");
+  assert(error.kind != READER_NO_ERROR);
+  assert(response.status == 0x0);
 
   reader_command obtaintemp = {
     .address = READER_ADR_BROADCAST,
@@ -34,13 +31,11 @@ int main() {
     .data = 0,
   };
 
-  err = reader_execute(&r, obtaintemp);
-  if (err.kind != READER_NO_ERROR) {
-    printf("Reader command execution failed %s: %s\n", reader_error_to_string(err), err.message);
-    return 1;
-  }
+  reader_execute(&r, obtaintemp, &error);
+  assert(error.kind != READER_NO_ERROR);
+  assert(response.status == 0x0);
 
-  printf("Temperature: %d\n", r.response.data[2]);
+  printf("Temperature: %d\n", response.data ? response.data[2] : -response.data[2]);
 
   reader_destroy(&r);
   return 0;
